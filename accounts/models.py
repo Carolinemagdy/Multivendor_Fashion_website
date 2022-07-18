@@ -60,7 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 #     def __str__(self):
 #         return self.username
-
+    
 class Customer(models.Model):
     user=models.OneToOneField( 'User', related_name="customer_user", on_delete=models.CASCADE,primary_key=True)
     phone=models.TextField(default="",blank=True)
@@ -80,13 +80,4 @@ class Vendor(models.Model):
     def __str__(self):
         return self.user.email
     
-    
-# class Orders(models.Model):
-# 	STATUS_CHOICES = (("Accepted",'Accepted'),("Packed",'Packed'),("On The Way",'On The Way'),("Delivered",'Delivered'),("Cancel",'Cancel'))
-# 	order_id = models.CharField(max_length=50,default='')
-# 	saler = models.CharField(max_length=100,default='wrappers@admin',)
-# 	user = models.ForeignKey(User, default='', on_delete=models.CASCADE)
-# 	products = models.CharField(max_length=50)
-# 	size = models.CharField(max_length=50,default='',null=True)
-# 	status = models.CharField(max_length=15,choices=STATUS_CHOICES,default='')
     
