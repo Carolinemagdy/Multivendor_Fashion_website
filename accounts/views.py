@@ -81,8 +81,6 @@ class ListCustomerAPIView(generics.ListAPIView):
     serializer_class = CustomerSerializer
 
 class ListVendorAPIView(generics.ListAPIView):
-    permission_classes = (permissions.IsAuthenticated,IsVendor)
-
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
     
