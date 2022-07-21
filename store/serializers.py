@@ -13,8 +13,24 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs={'category': {'read_only': True}, 'vendor': {'read_only': True}}
         
-class ProductSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Product
+        model = Order
         fields = '__all__'
-        extra_kwargs={'category': {'read_only': True}, 'vendor': {'read_only': True}}
+        extra_kwargs={'user': {'read_only': True}}
+         
+class OrderItemSerializer(serializers.ModelSerializer):
+    # order=OrderSerializer(read_only=True)
+    # product=ProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+        extra_kwargs={'order': {'read_only': True}, 'product': {'read_only': True}}
+        
+class OrderProductSerializer(serializers.ModelSerializer):
+    product= ProductSerializer(read_only=True)
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+

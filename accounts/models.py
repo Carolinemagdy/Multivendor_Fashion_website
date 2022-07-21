@@ -31,6 +31,7 @@ class MyUserManager(BaseUserManager):
         user.is_staff = True
         user.is_superuser = True
         user.is_pro = True
+        user.is_admin=True
         
         user.save(using=self._db)
         return user
@@ -40,6 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(verbose_name='email', max_length=60, unique=True)
     name = models.CharField(verbose_name='name', max_length=80,blank=True)
     is_staff = models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     is_customer=models.BooleanField(default=False)
@@ -66,6 +68,10 @@ class Customer(models.Model):
     phone=models.TextField(default="",blank=True)
     country = models.CharField(max_length=100,blank=True)
 
+    def delete(self):
+        if self.user:
+            self.user.delete()
+        super(Customer, self).delete()
     
     def __str__(self):
         return self.user.email
@@ -77,6 +83,11 @@ class Vendor(models.Model):
     address = models.CharField(max_length=100,blank=True)
     description = models.TextField(blank=True)
     
+    def delete(self):
+        if self.user:
+            self.user.delete()
+        super(Vendor, self).delete()
+
     def __str__(self):
         return self.user.email
     

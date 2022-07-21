@@ -39,3 +39,10 @@ class IsSuperuserOrCustomer(BasePermission):
 
     def has_permission(self, request, view):
         return bool(request.user and (request.user.is_superuser or request.user.is_customer))
+class IsVendorOrCustomer(BasePermission):
+    """
+    Allows access to Superuser and customers.
+    """
+
+    def has_permission(self, request, view):
+        return bool(request.user and (request.user.is_vendor or request.user.is_customer))
