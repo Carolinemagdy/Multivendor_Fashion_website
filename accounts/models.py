@@ -55,16 +55,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
     
     
-# class User(AbstractUser):
-#     is_customer=models.BooleanField(default=False)
-#     is_vendor=models.BooleanField(default=False)
-#     email = models.EmailField('email address', unique=True)
-    
-#     objects = CustomUserManager()
-
-#     def __str__(self):
-#         return self.username
-    
 class Customer(models.Model):
     user=models.OneToOneField( 'User', related_name="customer_user", on_delete=models.CASCADE,primary_key=True)
     phone=models.CharField(max_length=100,default="",blank=True)
