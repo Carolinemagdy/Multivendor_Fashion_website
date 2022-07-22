@@ -1,14 +1,17 @@
 from django.db import models
 from accounts.models import *
-from django.contrib import messages, admin
+# from django.contrib import messages, admin
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 # Create your models here.
+from datetime import datetime
 
 class Category(models.Model):
     name = models.CharField(max_length=50)
     description=models.TextField(blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
-    is_active=models.IntegerField(default=1)
+    is_active=models.BooleanField(default=True)
     ordering = models.IntegerField(unique=True,blank=False)
 
     class Meta:
@@ -29,43 +32,38 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     in_stock_total=models.IntegerField(default=1)
-    is_active=models.IntegerField(default=1)
+    is_active=models.BooleanField(default=True)
     # image = models.ImageField(upload_to='uploads/products/')
-    
-    def save(self, *args, **kwargs):
-        # Make sure this is the first save (pk should be None) and there is no unit_price set
-        if self.pk is not None and self.price:
-            # self.unit_price = self.item.default_price
-        # elif not self.unit_price:
-            order_items=OrderItem.objects.filter(product=self) & OrderItem.objects.filter(order__ordered=True)
-            for one in order_items:
-                one.price = self.price * one.quantity
-                print(one.price)
-                one.save()
-                one.save()
-                print(one.price)
-        # Call the original save method
-        super(Product, self).save(*args, **kwargs)
-  
     
     def __str__(self):
         return self.name
+
+@receiver(post_save, sender=Product)
+def edit_orderItem(sender, instance, created, **kwargs):
+    if not created:
+        order_items=OrderItem.objects.filter(product=instance) & OrderItem.objects.filter(order__ordered=True)
+        for one in order_items:
+            one.price = instance.price * one.quantity
+            one.save()
+
+
   
 
 class Order(models.Model):
     user = models.ForeignKey(Customer, default='', on_delete=models.CASCADE,related_name='customer_order')
     ref_code = models.CharField(max_length=20, blank=True, null=True)
-    cumulative_status = models.IntegerField(default=1)
+    STATUS_CHOICES = ((1,'Accepted'),(2,'Preparing'),(3,'Packed'),(4,'On The Way'))
+    cumulative_status = models.IntegerField(choices=STATUS_CHOICES,default=1)
     address = models.CharField(max_length=250)
     city = models.CharField(max_length=100)
     phone = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    total_paid = models.DecimalField(max_digits=5, decimal_places=2,null=True)
+    total_price = models.DecimalField(max_digits=5, decimal_places=2,blank=True,default=0)
     billing_status = models.BooleanField(default=False) 
     start_date = models.DateTimeField(auto_now_add=True)
-    ordered_date = models.DateTimeField(null=True)
+    ordered_date = models.DateTimeField(blank=True)
     ordered = models.BooleanField(default=False)
     cancelled= models.BooleanField(default=False)
     delivered=models.BooleanField(default=False)
@@ -74,12 +72,23 @@ class Order(models.Model):
 
 
 
-# make the total paid auto calc
-# order data from checkout function
-# quantity must be less than total stock
     class Meta:
         ordering = ['-created_at',]
     
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.ordered=False
+            self.total_price=0  
+        if self.ordered: 
+            self.ordered_date=datetime.now()
+
+        # Call the original save method
+        super(Order, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.name} {self.id}"
+
+
     def __str__(self):
         return str(self.created_at)
 
@@ -94,16 +103,10 @@ class OrderItem(models.Model):
                                 on_delete=models.CASCADE)
     item_status = models.IntegerField(choices=STATUS_CHOICES,default=0)
 
-    price = models.DecimalField(max_digits=5, decimal_places=2,blank=True,null=True)
+    price = models.DecimalField(max_digits=5, decimal_places=2,blank=True)
     quantity = models.PositiveIntegerField(default=1)
-
-# if he update the price of the product we should call this 
     
     def save(self, *args, **kwargs):
-        # Make sure this is the first save (pk should be None) and there is no unit_price set
-        # if self.pk is None and not self.price:
-            # self.unit_price = self.item.default_price
-        # elif not self.unit_price:
         self.price = self.product.price * self.quantity
         if self.quantity>self.product.in_stock_total:
             return
@@ -111,7 +114,22 @@ class OrderItem(models.Model):
         super(OrderItem, self).save(*args, **kwargs)
 
     def __str__(self):
-        return str('order '+self.product.name)
+        return f"{self.order} {self.product.name}"
+    
+@receiver(post_save, sender=OrderItem)
+def edit_order(sender, instance, created, **kwargs):
+    if not created:
+        order_items=OrderItem.objects.filter(order=instance.order,order__ordered=True)
+        if order_items:
+            order_items.order_by('item_status')
+            first=order_items.first()
+            instance.order.cumulative_status=first.item_status
+            instance.order.save()
+        order_items=OrderItem.objects.filter(order=instance.order)
+        instance.order.total_price=0
+        for one in order_items:
+            instance.order.total_price += one.price   
+        instance.order.save()
 
 
  #guest

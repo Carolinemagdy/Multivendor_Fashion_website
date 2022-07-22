@@ -7,6 +7,7 @@ from rest_framework import status
 from core.permissions import *
 from django.core.exceptions import ObjectDoesNotExist
 from django_filters.rest_framework import DjangoFilterBackend
+from datetime import datetime
 
 
 # Create your views here.
@@ -17,11 +18,22 @@ class ListCreateCategoryView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    def get(self,request):
+        if request.user.is_authenticated():
+            if request.user.is_superuser :
+                categories=Category.objects.all()
+                serializer = CategorySerializer(categories, many=True)
+        else:
+            categories=Category.objects.filter(is_active=True)
+            serializer = CategorySerializer(categories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)       
+
     def get_permissions(self):
         if self.request.method == 'POST':
             return [permission() for permission in self.permission_classes]
         return [permissions.AllowAny()]
 
+# @extend_schema(methods=['PUT'], exclude=True)
 class CategoryRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
     queryset = Category.objects.all()
@@ -47,6 +59,7 @@ class CategoryRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIVie
 
 class VendorProductView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsVendor)
+    serializer_class=ProductSerializer
     def post(self, request,id):
         try:
             category=Category.objects.get(id=id)
@@ -78,6 +91,7 @@ class VendorProductView(generics.ListCreateAPIView):
 
 class AdminProductView(generics.CreateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
+    serializer_class=ProductSerializer
     def post(self, request,category_id,vendor_id):
         try:
             category=Category.objects.get(id=category_id)
@@ -144,16 +158,15 @@ class ListProductView(generics.ListAPIView):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
     filterset_fields=('id','category','name','price','vendor',
-                    'created','in_stock_total','is_active','product_discount_price')
+                    'created_at','in_stock_total','is_active','product_discount_price')
     search_fields=['id','category__id','name','price','vendor__user__id',
-                      'created','in_stock_total','is_active','product_discount_price']
+                      'created_at','in_stock_total','is_active','product_discount_price']
     ordering_fields = ('id','category','name','price','vendor',
-                      'created','in_stock_total','is_active','product_discount_price')
-    
+                      'created_at','in_stock_total','is_active','product_discount_price')        
 
 
 ########## Order Views ##################
-class ItemOrderView(APIView):
+class ItemOrderView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,IsCustomer)
     serializer_class = OrderItemSerializer
 
@@ -246,6 +259,8 @@ class ItemOrderView(APIView):
 
 class CartView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,IsCustomer)
+    serializer_class = OrderProductSerializer
+
     def get(self,request):
         try:
             customer=Customer.objects.get(user=request.user)
@@ -260,6 +275,7 @@ class CartView(generics.ListAPIView):
         
 class CheckoutView(generics.UpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsCustomer)
+    serializer_class=OrderSerializer
     def put(self, request):
         ''' 
         edit cart to be an order 
@@ -278,6 +294,7 @@ class CheckoutView(generics.UpdateAPIView):
         
         data=request.data
         data['ordered']=True
+        data['ordered_date']=datetime.now()
         if 'address' not in data:
             return Response('you must enter the shipping address' )      
 
@@ -295,6 +312,7 @@ class CheckoutView(generics.UpdateAPIView):
 class CancelOrderView(generics.UpdateAPIView):
 
     permission_classes = (permissions.IsAuthenticated,IsCustomer)
+    serializer_class=CancelSerializer
     def put(self, request,id):
         ''' 
         cancel an order 
@@ -314,10 +332,9 @@ class CancelOrderView(generics.UpdateAPIView):
 
         items_list=OrderItem.objects.filter(order=order)
         
-        data=request.data
-        data['cancelled']=True
-
-        serializer = OrderSerializer(order,data=data,partial=True)
+        order.cancelled=True
+        order.save()
+        serializer = OrderSerializer(order)
         if serializer.is_valid():
             serializer.save()
             for one in items_list:  
@@ -332,6 +349,7 @@ class OrderView(generics.ListAPIView):
     get all orders for the requested user 
     '''
     permission_classes = (permissions.IsAuthenticated,IsVendorOrCustomer)
+    serializer_class=OrderItemSerializer
     def get(self,request):
         if request.user.is_customer:
             customer=Customer.objects.get(user=request.user)
@@ -356,6 +374,7 @@ class VendorOrderView(generics.ListAPIView):
     get all orders for a product from the requested vendor
     '''
     permission_classes = (permissions.IsAuthenticated,IsVendor)
+    serializer_class=OrderItemSerializer
     def get(self,request,id):
         try:
             product=Product.objects.get(id=id)
@@ -373,10 +392,12 @@ class VendorOrderView(generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)       
 
 class VendorItemView(generics.RetrieveUpdateAPIView):
-    permission_classes = (permissions.IsAuthenticated,IsVendor)
     '''
     get and edit product in a specific order
     '''
+    permission_classes = (permissions.IsAuthenticated,IsVendor)
+    serializer_class=OrderItemSerializer
+
     def get(self,request,order_id,product_id):
         try:
             product=Product.objects.get(id=product_id)
@@ -425,10 +446,13 @@ class VendorItemView(generics.RetrieveUpdateAPIView):
 
 
 class OrderItemView(generics.RetrieveUpdateAPIView):
-    permission_classes = (permissions.IsAuthenticated,IsSuperuserOrVendor)
     '''
     get and edit OrderItem
     '''
+    permission_classes = (permissions.IsAuthenticated,IsSuperuserOrVendor)
+    serializer_class=OrderItemSerializer
+    queryset=OrderItem.objects.all()
+    
     def get(self,request,pk):
         try:
             order_item=OrderItem.objects.get(id=pk)

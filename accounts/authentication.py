@@ -2,6 +2,7 @@ from .models import User
 import jwt
 from rest_framework import authentication, exceptions
 from django.conf import settings
+from rest_framework.response import Response
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
@@ -12,8 +13,12 @@ class JWTAuthentication(authentication.BaseAuthentication):
         if not auth_data:
             return None
 
-        _, token = auth_data.decode('utf-8').split(' ')
-
+        try:
+            _, token = auth_data.decode('utf-8').split(' ')
+        except:
+            raise exceptions.AuthenticationFailed(
+                'Please insert \'Bearer\' before the inserted token.')
+            
         try:
             payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms="HS256")
 

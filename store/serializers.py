@@ -34,3 +34,8 @@ class OrderProductSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = '__all__'
 
+class CancelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields =['cancelled']
+        

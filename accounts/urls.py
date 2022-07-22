@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+app_name = 'accounts'
 
 urlpatterns = [
     path('register/', RegisterView.as_view()),
@@ -12,5 +13,6 @@ urlpatterns = [
     path('<int:pk>/', UserRetrtieveUpdateDestroyAPIView.as_view()),
     path('customer/<int:pk>/', CustomerRetrtieveUpdateDestroyAPIView.as_view()),
     path('vendor/<int:pk>/', VendorRetrtieveUpdateDestroyAPIView.as_view()),
+    path('email-verify/', VerifyEmail.as_view(), name="email-verify"),
 
 ]

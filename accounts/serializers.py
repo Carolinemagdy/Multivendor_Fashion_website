@@ -7,7 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
         max_length=65, min_length=8, write_only=True)
     email = serializers.EmailField(max_length=255, min_length=4),
     name = serializers.CharField(max_length=255, min_length=2)
-
+    is_customer=serializers.BooleanField(default=False,read_only=True)
+    is_vendor=serializers.BooleanField(default=False,read_only=True)
     class Meta:
         model = User
         fields = ['id','name', 'email', 'password',
@@ -70,8 +71,7 @@ class LoginSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(
         max_length=65, min_length=8, write_only=True)
-    name = serializers.CharField(max_length=255, min_length=2)
 
     class Meta:
         model = User
-        fields = ['name', 'password','is_customer','is_vendor']
+        fields = ['email', 'password','is_customer','is_vendor']
