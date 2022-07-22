@@ -15,10 +15,17 @@ from datetime import datetime
 ########### Category Views  ##########
 
 class ListCreateCategoryView(generics.ListCreateAPIView):
+    '''
+    Create Category accessed to Admin only
+    '''
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     def get(self,request):
+        '''
+        Get List of categories accessed to anyone
+        '''
+
         if request.user.is_authenticated():
             if request.user.is_superuser :
                 categories=Category.objects.all()
@@ -33,13 +40,21 @@ class ListCreateCategoryView(generics.ListCreateAPIView):
             return [permission() for permission in self.permission_classes]
         return [permissions.AllowAny()]
 
-# @extend_schema(methods=['PUT'], exclude=True)
 class CategoryRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Get a  Category accessed to anyone
+    '''
+
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
     #PUT
     def put(self, request,pk):
+        '''
+        Edit a  Category accessed to Admin only
+        '''
+
         try:
             query_set = Category.objects.get(id=pk)
         except ObjectDoesNotExist:
@@ -61,6 +76,11 @@ class VendorProductView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsVendor)
     serializer_class=ProductSerializer
     def post(self, request,id):
+        '''
+        Create a product for the requested vendor in the category with the passed category id
+        , accessed to vendors only 
+        '''
+    
         try:
             category=Category.objects.get(id=id)
         except ObjectDoesNotExist:
@@ -77,6 +97,11 @@ class VendorProductView(generics.ListCreateAPIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request,id):
+        '''
+        Get List of products for the requested vendor exist in the category with the passed category id
+        , accessed to vendors only 
+        '''
+
         try:
             category=Category.objects.get(id=id)
         except ObjectDoesNotExist:
@@ -93,6 +118,11 @@ class AdminProductView(generics.CreateAPIView):
     permission_classes = (permissions.IsAuthenticated,IsSuperuser)
     serializer_class=ProductSerializer
     def post(self, request,category_id,vendor_id):
+        '''
+        Ceate a product for a specific vendor with the vendor id and 
+        in the category with the passed category id, accessed to admin only 
+        '''
+
         try:
             category=Category.objects.get(id=category_id)
         except ObjectDoesNotExist:
@@ -110,11 +140,19 @@ class AdminProductView(generics.CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductView(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Get a Product info with the passed id , accessed to anyone 
+    '''
+
     permission_classes = (permissions.IsAuthenticated,IsSuperuserOrVendor)
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
     def put(self, request,pk):
+        '''
+        Edit a Product info with the passed id , accessed to admin or a vendor owns the product 
+        '''
+
         try:
             product=Product.objects.get(id=pk)
         except ObjectDoesNotExist:
@@ -125,8 +163,6 @@ class ProductView(generics.RetrieveUpdateDestroyAPIView):
                 product=Product.objects.get(id=pk,vendor=vendor)
             except:
                 return Response({'vendor is not the owner of this product'},status=status.HTTP_403_FORBIDDEN)
-        # if 'price' in request.data:
-            # chane all order items price
         serializer = self.serializer_class(product,data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -134,6 +170,10 @@ class ProductView(generics.RetrieveUpdateDestroyAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request,pk):
+        '''
+        Delete a Product info with the passed id , accessed to admin or a vendor owns the product 
+        '''
+
         try:
             product=Product.objects.get(id=pk)
         except ObjectDoesNotExist:
@@ -154,6 +194,11 @@ class ProductView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ListProductView(generics.ListAPIView):
+    '''
+    Get List of Products( with all the possible filters , Sort with a field name in Ordering parameter,
+    also search with any )key ,acessed to any one
+    '''
+
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
@@ -172,7 +217,8 @@ class ItemOrderView(generics.GenericAPIView):
 
     def post(self, request,id):
         ''' 
-        Add to cart API        
+        Add to cart , Create a new order for the requested Customer 
+        and put the product with the passed id in the order, accessed to cutomers only '        
         '''
         try:
             product=Product.objects.get(id=id)
@@ -213,7 +259,7 @@ class ItemOrderView(generics.GenericAPIView):
     
     def delete(self, request,id):
         '''  
-        Remove fom cart API
+        Remove a product with the passed id fom the cart , accessed for the customer only
         '''
         try:
             product=Product.objects.get(id=id)
@@ -235,7 +281,7 @@ class ItemOrderView(generics.GenericAPIView):
 
     def put(self, request,id):
         ''' 
-        edit item in cart API
+        edit item in the cart, edit the quantity for the passed id product  , accessed for the customer only
         '''
         try:
             product=Product.objects.get(id=id)
@@ -262,6 +308,10 @@ class CartView(generics.ListAPIView):
     serializer_class = OrderProductSerializer
 
     def get(self,request):
+        ''' 
+        get items in the cart, with all order items  , accessed for the customer only
+        '''
+
         try:
             customer=Customer.objects.get(user=request.user)
             order=Order.objects.get(ordered=False,user=customer)
@@ -278,7 +328,7 @@ class CheckoutView(generics.UpdateAPIView):
     serializer_class=OrderSerializer
     def put(self, request):
         ''' 
-        edit cart to be an order 
+        checkout , edit cart to be ordered , update the order info in the checkout , acessed for customers only
         '''
         try:
             customer=Customer.objects.get(user=request.user)
@@ -311,19 +361,27 @@ class CheckoutView(generics.UpdateAPIView):
 
 class CancelOrderView(generics.UpdateAPIView):
 
-    permission_classes = (permissions.IsAuthenticated,IsCustomer)
+    permission_classes = (permissions.IsAuthenticated,IsSuperuserOrCustomer)
     serializer_class=CancelSerializer
     def put(self, request,id):
         ''' 
-        cancel an order 
+        cancel an order , update the order with the passed id to be cancelled , accessed to admin and customer
         '''
-        try:
-            customer=Customer.objects.get(user=request.user)
+        if request.user.is_customer:
+           
+            try:
+                customer=Customer.objects.get(user=request.user)
 
-            order=Order.objects.get(id=id,user=customer)
+                order=Order.objects.get(id=id,user=customer)
 
-        except ObjectDoesNotExist:
-            return Response({'The Order is not found'},status=status.HTTP_404_NOT_FOUND)
+            except ObjectDoesNotExist:
+                return Response({'The Order is not found'},status=status.HTTP_404_NOT_FOUND)
+        else:
+            try:
+                order=Order.objects.get(id=id)
+
+            except ObjectDoesNotExist:
+                return Response({'The Order is not found'},status=status.HTTP_404_NOT_FOUND)
 
         if order.delivered :
             return Response({'The Order was delivered already'},status=status.HTTP_404_NOT_FOUND)
@@ -346,7 +404,7 @@ class CancelOrderView(generics.UpdateAPIView):
 
 class OrderView(generics.ListAPIView):
     '''
-    get all orders for the requested user 
+    get all orders for the requested user , accessed for customer and vendors
     '''
     permission_classes = (permissions.IsAuthenticated,IsVendorOrCustomer)
     serializer_class=OrderItemSerializer
@@ -371,7 +429,7 @@ class OrderView(generics.ListAPIView):
                    
 class VendorOrderView(generics.ListAPIView):
     '''
-    get all orders for a product from the requested vendor
+    get all orders for a product owner from the requested vendor, accessed by vendors only
     '''
     permission_classes = (permissions.IsAuthenticated,IsVendor)
     serializer_class=OrderItemSerializer
@@ -392,13 +450,14 @@ class VendorOrderView(generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)       
 
 class VendorItemView(generics.RetrieveUpdateAPIView):
-    '''
-    get and edit product in a specific order
-    '''
     permission_classes = (permissions.IsAuthenticated,IsVendor)
     serializer_class=OrderItemSerializer
 
     def get(self,request,order_id,product_id):
+        '''
+        get product with the passed id in a specific order with the passed id , accessed by vendors only
+        '''
+
         try:
             product=Product.objects.get(id=product_id)
         except ObjectDoesNotExist:
@@ -421,6 +480,10 @@ class VendorItemView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)   
 
     def put(self,request,order_id,product_id):
+        '''
+        Edit product with the passed id in a specific order with the passed id , accessed by vendors only
+        '''
+
         try:
             product=Product.objects.get(id=product_id)
         except ObjectDoesNotExist:
@@ -446,14 +509,15 @@ class VendorItemView(generics.RetrieveUpdateAPIView):
 
 
 class OrderItemView(generics.RetrieveUpdateAPIView):
-    '''
-    get and edit OrderItem
-    '''
+
     permission_classes = (permissions.IsAuthenticated,IsSuperuserOrVendor)
     serializer_class=OrderItemSerializer
     queryset=OrderItem.objects.all()
     
     def get(self,request,pk):
+        '''
+        get an OrderItem with the passed id , accessed for admin and vendor
+        '''
         try:
             order_item=OrderItem.objects.get(id=pk)
         except ObjectDoesNotExist:
@@ -475,6 +539,10 @@ class OrderItemView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)   
     
     def put(self,request,pk):
+        '''
+        Edit an OrderItem with the passed id , accessed for admin and vendor to edit item status
+        '''
+
         try:
             order_item=OrderItem.objects.get(id=pk)
         except ObjectDoesNotExist:

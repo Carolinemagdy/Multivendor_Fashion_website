@@ -21,19 +21,10 @@ from drf_yasg import openapi
 def prepare_verify_email(current_site,user,token):
     """
     Prepare verify email
-    
-    :param name: current_site 
-    :param type: str
-    :param name: user 
-    :param type: object
-    :param name: token 
-    :param type: int
-    :return name: data
-    :return type: str
     """
     relative_link = reverse('accounts:email-verify')
     absurl = 'http://'+current_site+relative_link+"?token="+str(token)
-    email_body = 'Hi ' + user.name + ' Use link to verify \n' + absurl
+    email_body = 'Hi ' + user.name + ' Use this link to verify \n' + absurl
     data = {'email_body': email_body,
             'to_email': user.email,
             'email_subject': 'Verify Your Email'}
@@ -43,9 +34,6 @@ def verifying_user(user):
     """
     Verify user
     
-    :param name: user : Logged in user
-    :param type: user
-    :return: None
     """
     if not user.is_verified:
         user.is_verified = True
@@ -58,8 +46,9 @@ def send_email(data):
 # Create your views here.
 
 class VerifyEmail(APIView):
+    
     token_param_config = openapi.Parameter(
-        'token', in_=openapi.IN_QUERY, description='Description',
+        'token', in_=openapi.IN_QUERY, description='Use the token sent to user email to verify the user ',
         type=openapi.TYPE_STRING)
 
 
@@ -85,15 +74,68 @@ class VerifyEmail(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-class RegisterView(generics.GenericAPIView):
-    serializer_class = UserSerializer
+# class RegisterView(generics.GenericAPIView):
+#     serializer_class = UserSerializer
+#     def post(self, request):
+#         '''
+#         Sign UP API
+#         '''
+
+#         serializer = UserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             #Setting email message
+#             user = User.objects.get(email=request.data['email'])
+#             token = RefreshToken.for_user(user).access_token
+#             current_site = get_current_site(request).domain
+
+#             email = prepare_verify_email(current_site,user,token)
+            
+#             #sending mail
+#             send_email(email)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VendorRegisterView(generics.GenericAPIView):
+    serializer_class = VendorSerializer
+    '''
+    Sign UP for Vendor
+    '''
 
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+   
+        serializer = VendorSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             #Setting email message
-            user = User.objects.get(email=request.data['email'])
+            user = Vendor.objects.get(user_email=request.data['email'])
+            token = RefreshToken.for_user(user).access_token
+            current_site = get_current_site(request).domain
+
+            email = prepare_verify_email(current_site,user,token)
+            
+            #sending mail
+            send_email(email)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CustomerRegisterView(generics.GenericAPIView):
+    serializer_class =CustomerSerializer
+
+    def post(self, request):
+        '''
+        Sign UP for Customer
+        '''
+
+        serializer = CustomerSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            #Setting email message
+            user = Customer.objects.get(user_email=request.data['email'])
             token = RefreshToken.for_user(user).access_token
             current_site = get_current_site(request).domain
 
@@ -105,32 +147,12 @@ class RegisterView(generics.GenericAPIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class VendorRegisterView(generics.GenericAPIView):
-    serializer_class = VendorSerializer
-
-    def post(self, request):
-        serializer = VendorSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class CustomerRegisterView(generics.GenericAPIView):
-    serializer_class =CustomerSerializer
-
-    def post(self, request):
-        serializer = CustomerSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     def post(self, request):
+        '''
+        Login API
+        '''
         data = request.data
         email = data['email']
         password = data['password']
@@ -153,28 +175,48 @@ class LoginView(generics.GenericAPIView):
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
 class ListUserAPIView(generics.ListAPIView):
-    
+    '''
+    Get List of all Users
+    '''
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 class ListCustomerAPIView(generics.ListAPIView):
+    '''
+    Get List of all Customers
+    '''
+
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
 class ListVendorAPIView(generics.ListAPIView):
+    '''
+    Get List of all Vendors
+    '''
+
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
     
-class UserRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+# class UserRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+#     '''
+#     Edit , Get , Update a user with the passed id
+#     '''
+
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
 
 class CustomerRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Edit , Get , Update a customer with the passed id
+    '''
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
 
 class VendorRetrtieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    '''
+    Edit , Get , Update a vendor with the passed id
+    '''
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
 

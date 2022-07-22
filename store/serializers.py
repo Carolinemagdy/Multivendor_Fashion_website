@@ -20,8 +20,6 @@ class OrderSerializer(serializers.ModelSerializer):
         extra_kwargs={'user': {'read_only': True}}
          
 class OrderItemSerializer(serializers.ModelSerializer):
-    # order=OrderSerializer(read_only=True)
-    # product=ProductSerializer(read_only=True)
 
     class Meta:
         model = OrderItem
