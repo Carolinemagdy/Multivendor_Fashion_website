@@ -158,11 +158,11 @@ class ListProductView(generics.ListAPIView):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
     filterset_fields=('id','category','name','price','vendor',
-                    'created_at','in_stock_total','is_active','product_discount_price')
+                    'created_at','in_stock_total','is_active')
     search_fields=['id','category__id','name','price','vendor__user__id',
-                      'created_at','in_stock_total','is_active','product_discount_price']
+                      'created_at','in_stock_total','is_active']
     ordering_fields = ('id','category','name','price','vendor',
-                      'created_at','in_stock_total','is_active','product_discount_price')        
+                      'created_at','in_stock_total','is_active')        
 
 
 ########## Order Views ##################
@@ -294,7 +294,7 @@ class CheckoutView(generics.UpdateAPIView):
         
         data=request.data
         data['ordered']=True
-        data['ordered_date']=datetime.now()
+        data['ordered_date']=make_aware(datetime.now())
         if 'address' not in data:
             return Response('you must enter the shipping address' )      
 

@@ -46,7 +46,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_customer=models.BooleanField(default=False)
     is_vendor=models.BooleanField(default=False)
-
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True)
+    
     USERNAME_FIELD = 'email'
     objects = MyUserManager()        
     def __str__(self):
@@ -65,7 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
 class Customer(models.Model):
     user=models.OneToOneField( 'User', related_name="customer_user", on_delete=models.CASCADE,primary_key=True)
-    phone=models.TextField(default="",blank=True)
+    phone=models.CharField(max_length=100,default="",blank=True)
     country = models.CharField(max_length=100,blank=True)
 
     def delete(self):
@@ -73,20 +75,33 @@ class Customer(models.Model):
             self.user.delete()
         super(Customer, self).delete()
     
+    def save(self, *args, **kwargs):
+        self.user.is_customer=True
+        self.user.save()
+        # Call the original save method
+        super(Customer, self).save(*args, **kwargs)
+
     def __str__(self):
         return self.user.email
     
 class Vendor(models.Model):
     user=models.OneToOneField('User', related_name="vendor_user", on_delete=models.CASCADE,primary_key=True)
-    rating=models.IntegerField(default=0)
+    rating=models.IntegerField(default=5)
     area = models.CharField(max_length=100,blank=True)
     address = models.CharField(max_length=100,blank=True)
-    description = models.TextField(blank=True)
+    description = models.CharField(max_length=500,blank=True)
     
     def delete(self):
         if self.user:
             self.user.delete()
         super(Vendor, self).delete()
+
+    def save(self, *args, **kwargs):
+        
+        self.user.is_vendor=True
+        self.user.save()
+        # Call the original save method
+        super(Vendor, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.user.email
