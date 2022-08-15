@@ -7,5 +7,13 @@ COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
 COPY . .
+ENV EMAIL_HOST 'smtp.gmail.com'
+ENV EMAIL_PORT '587'
+ENV EMAIL_HOST_USER 'caroline.magdy012@gmail.com'
+ENV EMAIL_HOST_PASSWORD 'neirzdusliowptyt'
+ENV JWT_SECRET_KEY "JWT_SECRET_KEY1234567890"
+ENV PORT 8001
 
-CMD python manage.py runserver 0.0.0.0:$PORT
+CMD sh -c "python manage.py makemigrations && \
+                    python manage.py migrate && \
+                    python manage.py runserver 0.0.0.0:8000"
