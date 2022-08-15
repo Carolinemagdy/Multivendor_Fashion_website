@@ -12,7 +12,6 @@ ENV EMAIL_PORT '587'
 ENV EMAIL_HOST_USER 'caroline.magdy012@gmail.com'
 ENV EMAIL_HOST_PASSWORD 'neirzdusliowptyt'
 ENV JWT_SECRET_KEY "JWT_SECRET_KEY1234567890"
-ENV PORT 8001
 
 CMD sh -c "python manage.py makemigrations && \
                     python manage.py migrate && \
